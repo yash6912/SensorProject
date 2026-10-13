@@ -1,334 +1,291 @@
-
-import os
 import sys
-import pickle
-import logging
-from dataclasses import dataclass
-
+from typing import Generator, List, Tuple
+import os
+import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import GridSearchCV
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    GradientBoostingClassifier,
-)
-from sklearn.svm import SVC
-from xgboost import XGBClassifier
 
+
+from xgboost import XGBClassifier
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.model_selection import GridSearchCV, train_test_split
 from src.constant import *
 from src.exception import CustomException
+from src.logger import logging
 from src.utils.main_utils import MainUtils
+
+
+from dataclasses import dataclass
 
 
 @dataclass
 class ModelTrainerConfig:
-    artifact_folder: str = os.path.join(artifact_folder)
-    train_model_path: str = os.path.join(
-        artifact_folder, "model.pkl"
-    )
-    expected_accuracy: float = 0.45
-    model_config_file_path: str = os.path.join(
-        "config", "model.yaml"
-    )
+    artifact_folder= os.path.join(artifact_folder)
+    trained_model_path= os.path.join(artifact_folder,"model.pkl" )
+    expected_accuracy=0.45
+    model_config_file_path= os.path.join('config','model.yaml')
+
+
+
+
 
 
 class ModelTrainer:
-
     def __init__(self):
+       
+
+
         self.model_trainer_config = ModelTrainerConfig()
+
+
+
+
         self.utils = MainUtils()
 
+
         self.models = {
-            "XGBClassifier": XGBClassifier(
-                random_state=42,
-                eval_metric="logloss",
-            ),
-            "GradientBoostingClassifier":
-                GradientBoostingClassifier(random_state=42),
-            "SVC": SVC(),
-            "RandomForestClassifier":
-                RandomForestClassifier(random_state=42),
-        }
+                        'XGBClassifier': XGBClassifier(),
+                        'GradientBoostingClassifier' : GradientBoostingClassifier(),
+                        'SVC' : SVC(),
+                        'RandomForestClassifier': RandomForestClassifier()
+                        }
 
-    def evaluate_models(
-        self,
-        X_train,
-        y_train,
-        X_test,
-        y_test,
-        models,
-    ):
-        """Train and evaluate all candidate models."""
 
+   
+    def evaluate_models(self, X, y, models):
         try:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42
+            )
+
+
             report = {}
 
-            for model_name, model in models.items():
-                logging.info(
-                    "Training model: %s", model_name
-                )
 
-                model.fit(X_train, y_train)
+            for i in range(len(list(models))):
+                model = list(models.values())[i]
+
+
+                model.fit(X_train, y_train)  # Train model
+
 
                 y_train_pred = model.predict(X_train)
+
+
                 y_test_pred = model.predict(X_test)
 
-                train_score = accuracy_score(
-                    y_train, y_train_pred
-                )
-                test_score = accuracy_score(
-                    y_test, y_test_pred
-                )
 
-                report[model_name] = {
-                    "train_accuracy": train_score,
-                    "test_accuracy": test_score,
-                }
+                train_model_score = accuracy_score(y_train, y_train_pred)
 
-                logging.info(
-                    "%s | Train accuracy: %.4f | "
-                    "Test accuracy: %.4f",
-                    model_name,
-                    train_score,
-                    test_score,
-                )
+
+                test_model_score = accuracy_score(y_test, y_test_pred)
+
+
+                report[list(models.keys())[i]] = test_model_score
+
 
             return report
 
+
         except Exception as e:
             raise CustomException(e, sys)
 
-    def get_best_model(self, model_report):
-        """Return the model with the highest test accuracy."""
 
+
+
+    def get_best_model(self,
+                    x_train:np.array,
+                    y_train: np.array,
+                    x_test:np.array,
+                    y_test: np.array):
         try:
-            if not model_report:
-                raise ValueError(
-                    "Model evaluation report is empty."
-                )
+           
+             
 
-            best_model_name = max(
-                model_report,
-                key=lambda name: model_report[name][
-                    "test_accuracy"
-                ],
+
+            model_report: dict = self.evaluate_models(
+                 x_train =  x_train,
+                 y_train = y_train,
+                 x_test =  x_test,
+                 y_test = y_test,
+                 models = self.models
             )
 
-            best_model_score = model_report[
-                best_model_name
-            ]["test_accuracy"]
 
-            best_model_object = self.models[
-                best_model_name
+            print(model_report)
+
+
+            best_model_score = max(sorted(model_report.values()))
+
+
+            ## To get best model name from dict
+
+
+            best_model_name = list(model_report.keys())[
+                list(model_report.values()).index(best_model_score)
             ]
 
-            logging.info(
-                "Best model: %s | Accuracy: %.4f",
-                best_model_name,
-                best_model_score,
-            )
 
-            return (
-                best_model_name,
-                best_model_object,
-                best_model_score,
-            )
+            best_model_object = self.models[best_model_name]
+
+
+
+
+            return best_model_name, best_model_object, best_model_score
+
+
+
 
         except Exception as e:
-            raise CustomException(e, sys)
-
-    def finetune_best_model(
-        self,
-        best_model_object,
-        best_model_name,
-        X_train,
-        y_train,
-    ):
-        """Tune the selected model using GridSearchCV."""
-
+            raise CustomException(e,sys)
+       
+    def finetune_best_model(self,
+                            best_model_object:object,
+                            best_model_name,
+                            X_train,
+                            y_train,
+                            ) -> object:
+       
         try:
-            logging.info(
-                "Loading model configuration from: %s",
-                self.model_trainer_config
-                .model_config_file_path,
-            )
 
-            config = self.utils.read_yaml_file(
-                self.model_trainer_config
-                .model_config_file_path
-            )
 
-            model_config = config.get("model", {})
+            model_param_grid = self.utils.read_yaml_file(self.model_trainer_config.model_config_file_path)["model_selection"]["model"][best_model_name]["search_param_grid"]
 
-            # Support either a model-specific YAML section
-            # or a direct GridSearchCV parameter dictionary.
-            if best_model_name in model_config:
-                param_grid = model_config[
-                    best_model_name
-                ]
-            else:
-                param_grid = model_config
 
-            if not param_grid:
-                logging.warning(
-                    "No hyperparameters configured for %s. "
-                    "Returning the original trained model.",
-                    best_model_name,
-                )
-                return best_model_object
+
 
             grid_search = GridSearchCV(
-                estimator=best_model_object,
-                param_grid=param_grid,
-                cv=5,
-                n_jobs=-1,
-                verbose=1,
-                scoring="accuracy",
-                error_score="raise",
-            )
-
+                best_model_object, param_grid=model_param_grid, cv=5, n_jobs=-1, verbose=1 )
+           
             grid_search.fit(X_train, y_train)
 
-            logging.info(
-                "Best parameters: %s",
-                grid_search.best_params_,
-            )
 
-            logging.info(
-                "Best cross-validation accuracy: %.4f",
-                grid_search.best_score_,
-            )
+            best_params = grid_search.best_params_
 
-            return grid_search.best_estimator_
 
+            print("best params are:", best_params)
+
+
+            finetuned_model = best_model_object.set_params(**best_params)
+           
+
+
+            return finetuned_model
+       
         except Exception as e:
-            raise CustomException(e, sys)
+            raise CustomException(e,sys)
 
-    def initiate_model_trainer(
-        self,
-        train_array,
-        test_array,
-    ):
-        """Train, select, tune, evaluate, and save the model."""
 
+
+
+
+
+
+
+
+
+    def initiate_model_trainer(self, train_array, test_array):
         try:
-            logging.info(
-                "Starting model training."
+            logging.info(f"Splitting training and testing input and target feature")
+
+
+            x_train, y_train, x_test, y_test = (
+                train_array[:, :-1],
+                train_array[:, -1],
+                test_array[:, :-1],
+                test_array[:, -1],
             )
 
-            # Last column is assumed to be the target.
-            X_train = train_array[:, :-1]
-            y_train = train_array[:, -1]
 
-            X_test = test_array[:, :-1]
-            y_test = test_array[:, -1]
+           
 
-            logging.info(
-                "Training data shape: %s",
-                X_train.shape,
-            )
-            logging.info(
-                "Testing data shape: %s",
-                X_test.shape,
-            )
 
-            # Step 1: Evaluate candidate models.
-            model_report = self.evaluate_models(
-                X_train=X_train,
-                y_train=y_train,
-                X_test=X_test,
-                y_test=y_test,
-                models=self.models,
-            )
+            logging.info(f"Extracting model config file path")
 
-            print("\nModel Evaluation Report:")
-            for name, scores in model_report.items():
-                print(
-                    f"{name}: "
-                    f"Train Accuracy = "
-                    f"{scores['train_accuracy']:.4f}, "
-                    f"Test Accuracy = "
-                    f"{scores['test_accuracy']:.4f}"
-                )
 
-            # Step 2: Select the best model.
-            (
-                best_model_name,
-                best_model_object,
-                best_model_score,
-            ) = self.get_best_model(model_report)
 
-            print(
-                f"\nBest model before tuning: "
-                f"{best_model_name}"
-            )
-            print(
-                f"Test accuracy before tuning: "
-                f"{best_model_score:.4f}"
+
+           
+
+
+
+
+
+
+            logging.info(f"Extracting model config file path")
+
+
+            model_report: dict = self.evaluate_models(X=x_train, y=y_train, models=self.models)
+
+
+            ## To get best model score from dict
+            best_model_score = max(sorted(model_report.values()))
+
+
+            ## To get best model name from dict
+
+
+            best_model_name = list(model_report.keys())[
+                list(model_report.values()).index(best_model_score)
+            ]
+
+
+
+
+            best_model = self.models[best_model_name]
+
+
+
+
+            best_model = self.finetune_best_model(
+                best_model_name= best_model_name,
+                best_model_object= best_model,
+                X_train= x_train,
+                y_train= y_train
             )
 
-            # Step 3: Tune the selected model.
-            best_model_object = self.finetune_best_model(
-                best_model_object=best_model_object,
-                best_model_name=best_model_name,
-                X_train=X_train,
-                y_train=y_train,
-            )
 
-            # Step 4: Evaluate the tuned model on held-out data.
-            y_test_pred = best_model_object.predict(X_test)
+            best_model.fit(x_train, y_train)
+            y_pred = best_model.predict(x_test)
+            best_model_score = accuracy_score(y_test, y_pred)
+           
+            print(f"best model name {best_model_name} and score: {best_model_score}")
 
-            final_accuracy = accuracy_score(
-                y_test, y_test_pred
-            )
 
-            logging.info(
-                "Final test accuracy: %.4f",
-                final_accuracy,
-            )
 
-            print(
-                f"Final test accuracy after tuning: "
-                f"{final_accuracy:.4f}"
-            )
 
-            # Step 5: Check the expected accuracy threshold.
-            if (
-                final_accuracy
-                < self.model_trainer_config.expected_accuracy
-            ):
-                raise ValueError(
-                    "No acceptable model found. "
-                    f"Expected accuracy: "
-                    f"{self.model_trainer_config.expected_accuracy:.4f}, "
-                    f"obtained accuracy: {final_accuracy:.4f}"
-                )
+            if best_model_score < 0.5:
+                raise Exception("No best model found with an accuracy greater than the threshold 0.6")
+           
+            logging.info(f"Best found model on both training and testing dataset")
 
-            # Step 6: Save the trained model.
-            model_path = (
-                self.model_trainer_config.train_model_path
-            )
 
-            os.makedirs(
-                os.path.dirname(model_path) or ".",
-                exist_ok=True,
-            )
+ 
+       
 
-            with open(model_path, "wb") as file:
-                pickle.dump(best_model_object, file)
 
             logging.info(
-                "Trained model saved at: %s",
-                model_path,
+                f"Saving model at path: {self.model_trainer_config.trained_model_path}"
             )
 
-            print(f"Model saved successfully at: {model_path}")
 
-            return {
-                "model_name": best_model_name,
-                "test_accuracy": final_accuracy,
-                "model_path": model_path,
-            }
+            os.makedirs(os.path.dirname(self.model_trainer_config.trained_model_path), exist_ok=True)
+
+
+            self.utils.save_object(
+                file_path=self.model_trainer_config.trained_model_path,
+                obj=best_model
+            )
+           
+            return self.model_trainer_config.trained_model_path
+
+
+           
+
+
+           
+
 
         except Exception as e:
             raise CustomException(e, sys)

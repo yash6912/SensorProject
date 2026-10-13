@@ -1,19 +1,25 @@
-## logging is crucial for tracking the flow of the application and debugging issues. This module provides a simple logging setup for the application. this helps in tracking the flow of the application and debugging and monitoring issues.
+
+## Logging configuration
 
 import logging
 import os
 from datetime import datetime
 
+# Create the logs directory
+LOG_DIR = os.path.join(os.getcwd(), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# Generate a unique log filename
 LOG_FILE = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
 
-logs_path = os.path.join(os.getcwd(), "logs", LOG_FILE)
+# Create the complete log file path only once
+LOG_FILE_PATH = os.path.join(LOG_DIR, LOG_FILE)
 
-os.makedirs(os.path.dirname(logs_path), exist_ok=True)
-
-LOG_FILE_PATH = os.path.join(logs_path, LOG_FILE)
-
+# Configure logging
 logging.basicConfig(
     filename=LOG_FILE_PATH,
     format="[%(asctime)s] %(lineno)d %(levelname)s - %(message)s",
     level=logging.INFO,
 )
+
+logging.info("Logger initialized successfully")
