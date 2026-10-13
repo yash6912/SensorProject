@@ -10,6 +10,8 @@ def get_requirements(file_path: str) -> List[str]:
             requirements.remove("-e .")
     return requirements
 
+# just update
+
 setup(
     name="fault_detection",
     version="0.0.1",
