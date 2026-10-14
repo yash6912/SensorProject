@@ -10,7 +10,7 @@ def get_requirements(file_path: str) -> List[str]:
             requirements.remove("-e .")
     return requirements
 
-# just updated the yaml file
+# just updated the yml file
 
 setup(
     name="fault_detection",
