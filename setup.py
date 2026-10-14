@@ -10,7 +10,7 @@ def get_requirements(file_path: str) -> List[str]:
             requirements.remove("-e .")
     return requirements
 
-# testing workflow 2
+# testing workflow 3
 
 setup(
     name="fault_detection",
