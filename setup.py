@@ -10,7 +10,7 @@ def get_requirements(file_path: str) -> List[str]:
             requirements.remove("-e .")
     return requirements
 
-# just updated ec2 engine
+# testing workflow
 
 setup(
     name="fault_detection",
