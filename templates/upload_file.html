@@ -1,48 +1,592 @@
+
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Wafer fault detection</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
-<link rel="stylesheet" href="../static/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <title>WaferSense | AI Wafer Fault Detection</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
-   
-<!-- partial:index.partial.html -->
-<form action = "/predict" method = "post" enctype="multipart/form-data" >
-    <h1 class="title">Upload CSV for the prediction</h1>
-<div class="frame">
-    <div class="center">
-        <div class="title">
-            <h1>Drop file to upload</h1>
-        </div>
-       
 
+<header class="navbar">
 
-            <div class="dropzone">
-                <img src="http://100dayscss.com/codepen/upload.svg" class="upload-icon" />
-                <input type="file" class="upload-input" name = "file" accept=".csv" >
+    <a href="/" class="brand">
+        <div class="brand-icon">W</div>
+
+        <div>
+            <div class="brand-name">Wafer<span>Sense</span></div>
+            <div class="brand-subtitle">
+                INTELLIGENT QUALITY INSPECTION
             </div>
+        </div>
+    </a>
 
-
-        <button type="submit" class="btn" name="uploadbutton">Upload file</button>
-       
+    <div class="system-status">
+        <span class="status-dot"></span>
+        AI Inspection Workspace
     </div>
 
-
-</div>
-
-
-</form>
-<!-- original pen: https://codepen.io/roydigerhund/pen/ZQdbeN  -->
+</header>
 
 
-<!-- NO JS ADDED YET -->
-<!-- partial -->
-  <script src='https://100dayscss.com/codepen/js/jquery.min.js'></script><script  src="./script.js"></script>
+<main class="container">
 
+    <!-- Hero section -->
+
+    <section class="hero">
+
+        <div class="hero-content">
+
+            <div class="eyebrow">SEMICONDUCTOR ANALYTICS</div>
+
+            <h1>
+                Detect defects.<br>
+                <span>Protect quality.</span>
+            </h1>
+
+            <p class="hero-description">
+                Transform wafer sensor data into meaningful quality
+                insights using machine learning. Upload your CSV file
+                and generate wafer fault predictions.
+            </p>
+
+            <div class="hero-features">
+                <span>✓ AI-powered classification</span>
+                <span>✓ Downloadable predictions</span>
+            </div>
+
+        </div>
+
+        <div class="wafer-visual">
+
+            <div class="orbit orbit-one"></div>
+            <div class="orbit orbit-two"></div>
+
+            <div class="wafer">
+
+                <div class="wafer-grid"></div>
+
+                <div class="wafer-center">
+                    <span>W</span>
+                    <small>QUALITY SCAN</small>
+                </div>
+
+                <span class="wafer-point point-one"></span>
+                <span class="wafer-point point-two"></span>
+                <span class="wafer-point point-three"></span>
+
+            </div>
+
+            <div class="visual-label">
+                <span class="status-dot"></span>
+                SENSOR DATA → PREDICTION
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Prediction dashboard -->
+
+    <section class="dashboard">
+
+        <div class="section-header">
+
+            <div>
+                <div class="section-label">START AN INSPECTION</div>
+
+                <h2>Run a wafer quality check</h2>
+
+                <p class="section-description">
+                    Upload your dataset to begin the prediction process.
+                </p>
+            </div>
+
+            <div class="secure-badge">
+                <span>✓</span> CSV Data Processing
+            </div>
+
+        </div>
+
+
+        {% if error %}
+        <div class="error-message" role="alert">
+            <span>!</span>
+            {{ error }}
+        </div>
+        {% endif %}
+
+
+        <form id="prediction-form"
+              action="{{ url_for('upload') }}"
+              method="POST"
+              enctype="multipart/form-data">
+
+            <!-- Token used to detect the download response -->
+
+            <input type="hidden"
+                   name="download_token"
+                   id="download-token">
+
+
+            <div class="upload-layout">
+
+                <!-- Upload card -->
+
+                <div class="upload-card">
+
+                    <label for="csv-file"
+                           class="dropzone"
+                           id="dropzone">
+
+                        <input type="file"
+                               id="csv-file"
+                               name="file"
+                               accept=".csv,text/csv"
+                               required>
+
+                        <div class="upload-icon">
+                            <svg viewBox="0 0 48 48"
+                                 fill="none"
+                                 aria-hidden="true">
+
+                                <path d="M14 33H11a7 7 0 0 1-.7-14A13.5 13.5 0 0 1 36 17a8.5 8.5 0 0 1 1 16h-3"
+                                      stroke="currentColor"
+                                      stroke-width="2"
+                                      stroke-linecap="round"/>
+
+                                <path d="M24 36V21m0 0-6 6m6-6 6 6"
+                                      stroke="currentColor"
+                                      stroke-width="2.4"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+
+                        <h3 id="drop-title">
+                            Drop your CSV file here
+                        </h3>
+
+                        <p class="upload-description">
+                            or <span>browse files</span> from your computer
+                        </p>
+
+                        <div class="file-info" id="file-info" hidden>
+
+                            <div class="csv-badge">CSV</div>
+
+                            <div class="file-details">
+                                <strong id="file-name">data.csv</strong>
+                                <small id="file-size">Ready to upload</small>
+                            </div>
+
+                            <button type="button"
+                                    id="remove-file"
+                                    class="remove-file"
+                                    aria-label="Remove selected file">
+                                ×
+                            </button>
+
+                        </div>
+
+                        <div class="file-requirements">
+                            <span>Supported format: <strong>.CSV</strong></span>
+                            <span>Choose a dataset to get started</span>
+                        </div>
+
+                    </label>
+
+
+                    <div class="upload-footer">
+
+                        <p>
+                            <span class="info-icon">i</span>
+                            Ensure your CSV contains the expected model features.
+                        </p>
+
+                        <button type="submit"
+                                class="predict-button"
+                                id="predict-button">
+
+                            <span id="button-text">
+                                Predict wafer quality
+                            </span>
+
+                            <span class="button-arrow" id="button-arrow">
+                                →
+                            </span>
+
+                            <span class="spinner"
+                                  id="spinner"
+                                  aria-hidden="true"></span>
+
+                        </button>
+
+                    </div>
+
+                    <p class="loading-message"
+                       id="loading-message"
+                       role="status"
+                       aria-live="polite"
+                       hidden>
+                        Processing your dataset. Waiting for the prediction
+                        CSV response...
+                    </p>
+
+                </div>
+
+
+                <!-- Instructions -->
+
+                <aside class="instructions-card">
+
+                    <div class="instruction-icon">✓</div>
+
+                    <h3>Before you begin</h3>
+
+                    <p class="instruction-intro">
+                        Follow these steps for a smooth prediction process.
+                    </p>
+
+                    <div class="instruction-item">
+                        <div class="step-number">01</div>
+
+                        <div>
+                            <strong>Prepare your dataset</strong>
+                            <p>
+                                Use the feature columns expected by
+                                your trained ML model.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="instruction-item">
+                        <div class="step-number">02</div>
+
+                        <div>
+                            <strong>Upload a valid CSV</strong>
+                            <p>
+                                Select a properly formatted CSV file
+                                from your computer.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="instruction-item">
+                        <div class="step-number">03</div>
+
+                        <div>
+                            <strong>Download predictions</strong>
+                            <p>
+                                Your application returns a CSV containing
+                                the prediction results.
+                            </p>
+                        </div>
+                    </div>
+
+                </aside>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- Workflow -->
+
+    <section class="workflow">
+
+        <div class="workflow-heading">
+            <div class="workflow-symbol">✳</div>
+
+            <div>
+                <strong>Simple workflow</strong>
+                <p>From sensor data to quality insights</p>
+            </div>
+        </div>
+
+        <div class="workflow-step">
+            <span>1</span>
+            <div>
+                <strong>Upload data</strong>
+                <p>Select your CSV file</p>
+            </div>
+        </div>
+
+        <div class="workflow-connector"></div>
+
+        <div class="workflow-step">
+            <span>2</span>
+            <div>
+                <strong>Run prediction</strong>
+                <p>Analyze wafer features</p>
+            </div>
+        </div>
+
+        <div class="workflow-connector"></div>
+
+        <div class="workflow-step">
+            <span>3</span>
+            <div>
+                <strong>Get results</strong>
+                <p>Download prediction CSV</p>
+            </div>
+        </div>
+
+    </section>
+
+
+    <footer class="footer">
+        <span>WaferSense · AI-powered wafer fault detection</span>
+        <span>Machine Learning Quality Analytics</span>
+    </footer>
+
+</main>
+
+
+<script>
+(() => {
+
+    const form = document.getElementById("prediction-form");
+    const fileInput = document.getElementById("csv-file");
+    const dropzone = document.getElementById("dropzone");
+
+    const fileInfo = document.getElementById("file-info");
+    const fileName = document.getElementById("file-name");
+    const fileSize = document.getElementById("file-size");
+    const dropTitle = document.getElementById("drop-title");
+    const removeFile = document.getElementById("remove-file");
+
+    const downloadTokenInput = document.getElementById("download-token");
+    const predictButton = document.getElementById("predict-button");
+    const buttonText = document.getElementById("button-text");
+    const buttonArrow = document.getElementById("button-arrow");
+    const spinner = document.getElementById("spinner");
+    const loadingMessage = document.getElementById("loading-message");
+
+    let downloadCheckInterval = null;
+    let requestStarted = false;
+
+
+    function formatFileSize(bytes) {
+        if (bytes < 1024) {
+            return bytes + " bytes";
+        }
+
+        if (bytes < 1024 * 1024) {
+            return (bytes / 1024).toFixed(1) + " KB";
+        }
+
+        return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+
+    function displayFile(file) {
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+            fileInput.value = "";
+            alert("Please select a CSV file.");
+            return;
+        }
+
+        fileName.textContent = file.name;
+        fileSize.textContent =
+            formatFileSize(file.size) + " · Ready to upload";
+
+        fileInfo.hidden = false;
+        dropTitle.textContent = "Your file is ready";
+    }
+
+
+    fileInput.addEventListener("change", function () {
+        displayFile(this.files[0]);
+    });
+
+
+    // Drag-and-drop upload
+
+    ["dragenter", "dragover"].forEach(function (eventName) {
+        dropzone.addEventListener(eventName, function (event) {
+            event.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+    });
+
+
+    ["dragleave", "drop"].forEach(function (eventName) {
+        dropzone.addEventListener(eventName, function (event) {
+            event.preventDefault();
+            dropzone.classList.remove("dragover");
+        });
+    });
+
+
+    dropzone.addEventListener("drop", function (event) {
+        const file = event.dataTransfer.files[0];
+
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+            alert("Please drop a CSV file.");
+            return;
+        }
+
+        try {
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            fileInput.files = transfer.files;
+        } catch (error) {
+            console.warn("Could not assign dropped file.", error);
+            return;
+        }
+
+        displayFile(file);
+    });
+
+
+    // Remove selected file
+
+    removeFile.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        fileInput.value = "";
+        fileInfo.hidden = true;
+        dropTitle.textContent = "Drop your CSV file here";
+    });
+
+
+    // Reset the prediction button and loading message
+
+    function resetPredictionButton() {
+        predictButton.disabled = false;
+        predictButton.classList.remove("loading");
+
+        buttonText.textContent = "Predict wafer quality";
+        buttonArrow.style.display = "";
+        spinner.style.display = "none";
+
+        loadingMessage.hidden = true;
+        requestStarted = false;
+
+        if (downloadCheckInterval !== null) {
+            clearInterval(downloadCheckInterval);
+            downloadCheckInterval = null;
+        }
+    }
+
+
+    // Generate a token for each prediction request
+
+    function generateToken() {
+        if (window.crypto && window.crypto.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+
+        return Date.now().toString(36) +
+            Math.random().toString(36).slice(2);
+    }
+
+
+    // Check for the cookie set by Flask after preparing the download
+
+    function checkDownloadComplete() {
+        const expectedToken = downloadTokenInput.value;
+
+        if (!expectedToken) return;
+
+        const cookies = document.cookie.split(";");
+
+        const downloadReceived = cookies.some(function (cookie) {
+            return cookie.trim() ===
+                "download_token=" + expectedToken;
+        });
+
+        if (downloadReceived) {
+            resetPredictionButton();
+
+            // Remove the token cookie
+
+            document.cookie =
+                "download_token=; Max-Age=0; path=/; SameSite=Lax";
+        }
+    }
+
+
+    // Handle form submission
+
+    form.addEventListener("submit", function (event) {
+
+        const file = fileInput.files[0];
+
+        if (!file) {
+            event.preventDefault();
+            alert("Please select a CSV file first.");
+            return;
+        }
+
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+            event.preventDefault();
+            alert("Only CSV files are supported.");
+            return;
+        }
+
+        // Prevent accidental duplicate submissions
+
+        if (requestStarted) {
+            event.preventDefault();
+            return;
+        }
+
+        requestStarted = true;
+
+        const token = generateToken();
+        downloadTokenInput.value = token;
+
+        // Clear any previous token cookie
+
+        document.cookie =
+            "download_token=; Max-Age=0; path=/; SameSite=Lax";
+
+        // Activate loading UI
+
+        predictButton.disabled = true;
+        predictButton.classList.add("loading");
+
+        buttonText.textContent = "Running prediction...";
+        buttonArrow.style.display = "none";
+        spinner.style.display = "inline-block";
+
+        loadingMessage.hidden = false;
+
+        // Check whether Flask has returned the download response
+
+        clearInterval(downloadCheckInterval);
+
+        downloadCheckInterval = setInterval(
+            checkDownloadComplete,
+            500
+        );
+
+    });
+
+})();
+</script>
 
 </body>
 </html>
